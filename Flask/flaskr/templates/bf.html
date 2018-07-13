@@ -1,0 +1,61 @@
+<!-- <div class="control-entry"> -->
+            <!-- <label>导入房源文件：</label> -->
+                <!-- <div class="control-input"> -->
+                    <!-- <input type="file" name="file" id="filePicker"/> -->
+                    <!-- <input type="button" value = "显示"  onclick="importRentInfo(this)"/> -->
+                <!-- </div> -->
+        <!-- </div>    --> 
+
+
+        <script src="https://a.amap.com/Loca/static/dist/jquery.min.js"></script> <!-- CSV格式文件 -->
+        
+        //-------------------------------------------------------------------------------------
+            // // 使用FILEReader 方法读取上传的文件用来定位 ，最上面的上传file文件框配套使用
+            // function importRentInfo(fileInfo) {
+            // var reader = new FileReader();
+            //     reader.onload = function() 
+            //     {
+            //         var file_data = this.result;
+            //         loadRentLocationByFile(file_data)
+            //     }
+            //     var f = document.getElementById("filePicker").files[0];
+            //     reader.readAsText(f,'utf-8');    
+            // }
+
+            // 将这个CSV文件替换成房源文件测试，这个先备用，现在使用JSON文件直接加载
+            // $.get('https://a.amap.com/Loca/static/mock/china5a.csv', function (data) {
+            // function loadRentLocationByFile(districts){
+            //     var amap = Loca.create(map);
+
+            //     var layer = Loca.visualLayer({            
+            //             container: amap,
+            //             eventSupport: true,
+            //             type: 'point',
+            //             shape: 'circle',
+            //             fitView: true
+            //         });
+
+            //         // 定位CSV内容，地图打点
+            //         layer.setData(districts, {
+            //             lnglat: 'Lat_lng',
+            //             // 或者使用回调函数构造经纬度坐标
+            //             /*
+            //             lnglat: function (obj) {
+            //                 var value = obj.value;
+            //                 var lnglat = [value['经度'], value['纬度']];
+            //                 return lnglat;
+            //             },
+            //             */
+            //             // type: 'json'
+            //         });
+
+            //         layer.setOptions({
+            //             style: {
+            //                 radius: 9,
+            //                 fill: 'rgba(250, 100, 233, 0.6)',
+            //                 lineWidth: 1,
+            //                 stroke: '#eee'
+            //             }
+            //         });
+            //     layer.render();
+            // };
