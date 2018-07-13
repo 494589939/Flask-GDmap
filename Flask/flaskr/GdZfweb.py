@@ -10,20 +10,5 @@ app.config.from_object(config)
 def index():
     return render_template('index.html')
 
-    
-@app.route('/login/')
-def login():
-    return '这是登录页面'
-    
-
-@app.route('/question/<user_name>/')
-def question(user_name):    
-    if user_name == '1':
-        return '成功登录'
-    else:
-        return redirect(url_for('login'))
-
-
-
 if __name__ == '__main__':
     app.run(debug=True,host='0.0.0.0',port=7913)
