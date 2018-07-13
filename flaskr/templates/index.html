@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>远or广找房地图</title>
+    <link rel="stylesheet" href="https://cache.amap.com/lbs/static/main1119.css"/>
+    <script src="https://cache.amap.com/lbs/static/es5.min.js"></script>
+    <!-- plugin后面添加高德的各个接口 -->
+    <script src="https://webapi.amap.com/maps?v=1.4.8&key=c7c65d1dffe27b6f0e1cc70ef2800966&plugin=AMap.ArrivalRange,AMap.Scale,AMap.Geocoder,AMap.Riding,AMap.Walking,AMap.Transfer,AMap.Autocomplete,AMap.PlaceSearch"></script>
+    <script type="text/javascript" src="https://cache.amap.com/lbs/static/addToolbar.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/index.css')}}"><!-- CSS样式 -->
+</head>
+ 
+<body>
+    <div id="container"></div>
+    <div class="control-panel">
+        <div class="control-entry">
+            <label>工作地点：</label>
+                <div class="control-input">
+                    <input id="work-location" type="text">
+                </div>
+        </div>
+        <div class="control-entry">
+            <label>通勤方式：</label>
+                <div class="control-input">
+                    <input type="radio" name="vehicle" value="BUS" onClick="takeBus(this)" /> 公交
+                </div>
+        </div>
+        <div class="control-entry">
+            <label>通勤时间：</label>
+                <div class="control-input">
+                    <input type="radio" name="come_time" value="30" onClick="come_30(this)" /> 30分钟
+                    <input type="radio" name="come_time" value="60" onClick="come_60(this)" /> 60分钟  
+                </div>
+        </div>
+        
+    </div>
+    <div id="transfer-panel"></div>
+    <div id="panel"></div>
+    <!-- 下面这两个链接一定要导入否则无法定位房源 -->
+    <script type="text/javascript" src="{{ url_for('static', filename='js/House.js') }}"></script> <!-- 重点！！导入json实现房源定位 -->
+    <script src="https://webapi.amap.com/loca?key=c7c65d1dffe27b6f0e1cc70ef2800966"></script>
+    <script>
+        var map = new AMap.Map("container", {
+            resizeEnable: true,
+            zoomEnable: true,
+            zoom: 13
+        });
+
+        //地图中添加地图操作ToolBar插件，实现地图初始加载定位到当前城市
+        map.plugin(['AMap.ToolBar'], function() {
+            //设置地位标记为自定义标记
+            var toolBar = new AMap.ToolBar();
+            map.addControl(toolBar);
+        });
+        //-------------------------------------------------------------------------------------
+        var scale = new AMap.Scale();
+        map.addControl(scale);
+        
+        var arrivalRange = new AMap.ArrivalRange();
+        var x, y, t, vehicle = "BUS";
+        var workAddress, workMarker;
+        var rentMarkerArray = [];
+        var polygonArray = [];
+        var amapTransfer;
+        
+        var infoWindow = new AMap.InfoWindow({
+            offset: new AMap.Pixel(0, -30)
+        });
+        
+        var auto = new AMap.Autocomplete({
+            input: "work-location"
+        });
+        AMap.event.addListener(auto, "select", workLocationSelected);
+        
+     
+        // 做公交--------------------------------------------------------------------------------
+        function takeBus(radio) {
+            vehicle = radio.value;
+            loadWorkLocation()
+        }
+    
+        // 选择设置30分钟为通勤时间
+        function come_30(radio) {
+            come_time = radio.value;
+            loadWorkLocation();
+        }
+
+        // 选择设置60分钟为通勤时间
+        function come_60(radio) {
+            come_time = radio.value;
+            loadWorkLocation();
+        }
+
+        // 工作地点选定
+        function workLocationSelected(e) {
+            workAddress = e.poi.name;
+            loadWorkLocation();
+        }
+        
+        // 加载工作标记
+        function loadWorkMarker(x, y, locationName) {
+            workMarker = new AMap.Marker({
+                map: map,
+                title: locationName,
+                icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                position: [x, y]
+        
+            });
+        }
+        
+        // 加载工作范围
+        function loadWorkRange(x, y, t, color, v) {
+            arrivalRange.search([x, y], t, function(status, result) {
+                if (result.bounds) {
+                    for (var i = 0; i < result.bounds.length; i++) {
+                        var polygon = new AMap.Polygon({
+                            map: map,
+                            fillColor: color,
+                            fillOpacity: "0.4",
+                            strokeColor: color,
+                            strokeOpacity: "0.8",
+                            strokeWeight: 1
+                        });
+                        polygon.setPath(result.bounds[i]);
+                        polygonArray.push(polygon);
+                    }
+                }
+            }, {
+                policy: v
+            });
+        }
+
+        
+        function delWorkLocation() {
+            if (polygonArray) map.remove(polygonArray);
+            if (workMarker) map.remove(workMarker);
+            polygonArray = [];
+        }
+        
+        function delRentLocation() {
+            if (rentMarkerArray) map.remove(rentMarkerArray);
+            rentMarkerArray = [];
+        }
+
+        // 加载工作地点 正向地理编码 并设置公交到达圈
+        function loadWorkLocation() {
+            delWorkLocation();
+
+            var geocoder = new AMap.Geocoder({
+                city: "温州",
+                radius: 1000
+            });
+        
+            geocoder.getLocation(workAddress, function(status, result) {
+                if (status === "complete" && result.info === 'OK') {
+                    var geocode = result.geocodes[0];
+                    // 解析出来的经度
+                    x = geocode.location.getLng();
+                    // 解析出来的纬度
+                    y = geocode.location.getLat();
+                    loadWorkMarker(x, y);
+                    // 设置公交到达时间的范围come_time，如30分钟
+                    loadWorkRange(x, y, come_time, "#3f67a5", vehicle);
+                    map.setZoomAndCenter(12, [x, y]);
+                }
+            })
+        }
+
+        // 自动搜索载入的house.js文件内容实现自动加载到地图内部需要手动显示-------------------------
+        var amap = Loca.create(map);
+        var layer = Loca.visualLayer({
+            container: amap,
+            eventSupport: true,
+            type: 'point',
+            shape: 'circle'
+        });
+
+        // 鼠标事件
+        var infoWin;
+
+        layer.on('click', function (event) {
+            if (!infoWin) {
+                infoWin = new AMap.InfoWindow();
+            }
+            // 事件类型
+            var type = event.type;
+            // 当前元素的原始数据
+            var rawData = event.rawData;
+            // 原始鼠标事件
+            var originalEvent = event.originalEvent;
+            var lnglat = event.lnglat;
+            console.log('事件类型 ' + type);
+            console.log('原始数据 ' + JSON.stringify(rawData));
+            console.log('鼠标事件 ' + originalEvent);
+
+            infoWin.setContent('标题：'+rawData.info + '<br/>' + '价格：' + rawData.price + '<br/>' + '<a href="' + rawData.link + '" target="_blank">打开链接</a>');
+            // 重点注意下面这个 amap 是layer图层 不是主图层的 map
+            infoWin.open(amap.getMap(), new AMap.LngLat(lnglat[0], lnglat[1]));
+            
+            
+            // 获取input文本框输入的工作地点为骑行的终点 
+            var work_addr = $("input[id='work-location']").val();
+    
+            //骑行导航 温州
+            var riding = new AMap.Riding({
+                map: map,
+                panel: "panel"
+            });
+            riding.search([
+                {keyword: rawData.address[0], city:'温州'},
+                {keyword: work_addr, city:'温州'},
+            ]);
+        });
+
+        // 需要读取house.js文件内的districts函数的经纬度坐标
+        layer.setData(districts, {
+            type: 'json',
+            lnglat: 'lat_lng'
+        });
+
+        layer.setOptions({
+            style: {
+                // 半径大小
+                radius: 8,
+                // 颜色
+                fill: '#6551fc',
+                // 透明度
+                opacity: 0.5,
+                lineWidth: 1,
+                stroke: '#eee',
+                // 阴影模糊
+                shadowBlur: 8,
+                shadowColor: '#5b60f5'
+            },
+            selectStyle: {
+                radius: 14 * 1.2
+            }
+        });
+
+        layer.render();
+    </script>
+    
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.js') }}"></script>
+</body>
+</html>
