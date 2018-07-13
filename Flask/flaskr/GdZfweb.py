@@ -11,4 +11,5 @@ def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
+    # 请自行修改host 和 port
     app.run(debug=True,host='0.0.0.0',port=7913)
