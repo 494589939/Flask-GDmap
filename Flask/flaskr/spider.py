@@ -59,7 +59,7 @@ def save_csv(rows):
 
 # 将数据写成json格式文件
 def save_json(rows):
-	with open(r'C:\Users\49458\OneDrive\python-file\Flask\flaskr\static\js\House.js','w',encoding='Utf-8') as f:
+	with open(r'C:\XXXX\js\House.js','w',encoding='Utf-8') as f:
 		f.write('var districts =')
 		f.write(str(rows))
 		f.write(';')
